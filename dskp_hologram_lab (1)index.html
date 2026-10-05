@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DSKP HOLOGRAM LAB - MISI: PROTOKOL DSKP</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Orbitron & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800;900&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Tactical HUD Theme Definitions */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #030712;
+            color: #f3f4f6;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .font-hud {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Tactical HUD Grid Overlay */
+        .hud-grid {
+            background-size: 50px 50px;
+            background-image: 
+                linear-gradient(to right, rgba(6, 182, 212, 0.08) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(6, 182, 212, 0.08) 1px, transparent 1px);
+        }
+
+        /* Scanline Overlay Effect */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Neon Glow Utility Classes */
+        .glow-cyan {
+            box-shadow: 0 0 20px rgba(6, 182, 212, 0.4), inset 0 0 10px rgba(6, 182, 212, 0.2);
+        }
+        .glow-cyan-lg {
+            box-shadow: 0 0 35px rgba(6, 182, 212, 0.6), inset 0 0 15px rgba(6, 182, 212, 0.3);
+        }
+        .glow-orange {
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5), inset 0 0 10px rgba(245, 158, 11, 0.2);
+        }
+        .text-glow-cyan {
+            text-shadow: 0 0 12px rgba(6, 182, 212, 0.8);
+        }
+        .text-glow-orange {
+            text-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+        }
+
+        /* Interactive Targeting Bracket Effect */
+        .interactive-target {
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+        }
+        .interactive-target.dwell-hover {
+            transform: scale(1.04);
+            border-color: #06b6d4 !important;
+            box-shadow: 0 0 30px rgba(6, 182, 212, 0.8), inset 0 0 15px rgba(6, 182, 212, 0.4) !important;
+        }
+
+        /* Tactical HUD Reticle Cursor */
+        #holo-cursor {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 48px;
+            height: 48px;
+            margin-left: -24px;
+            margin-top: -24px;
+            pointer-events: none;
+            z-index: 9999;
+            display: none;
+            transition: opacity 0.2s;
+        }
+
+        .cursor-center-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #f59e0b;
+            border-radius: 50%;
+            position: absolute;
+            top: 21px;
+            left: 21px;
+            box-shadow: 0 0 10px #f59e0b, 0 0 20px #06b6d4;
+        }
+
+        .cursor-hud-ring {
+            width: 48px;
+            height: 48px;
+            border: 1.5px solid rgba(6, 182, 212, 0.8);
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            animation: spin-hud 8s linear infinite;
+        }
+
+        .cursor-hud-crosshair {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .cursor-hud-crosshair::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.6), transparent);
+        }
+        .cursor-hud-crosshair::after {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 1px;
+            background: linear-gradient(180deg, transparent, rgba(6, 182, 212, 0.6), transparent);
+        }
+
+        @keyframes spin-hud {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Vertical Laser Scanner Animation */
+        .laser-scanner {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #06b6d4, #38bdf8, #06b6d4, transparent);
+            box-shadow: 0 0 15px #06b6d4, 0 0 25px #38bdf8;
+            animation: scan-vertical 3s ease-in-out infinite alternate;
+        }
+
+        @keyframes scan-vertical {
+            0% { top: 5%; opacity: 0.3; }
+            50% { opacity: 1; }
+            100% { top: 92%; opacity: 0.3; }
+        }
+
+        /* Mirrored Video Pipeline */
+        .mirror-video {
+            transform: scaleX(-1);
+            -webkit-transform: scaleX(-1);
+        }
+
+        /* Circular Dwell Progress Ring SVG */
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.04s linear;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+
+        /* Geometric NEXA AI Mesh Pulse */
+        .nexa-core {
+            animation: nexa-pulse 3s infinite ease-in-out;
+        }
+        @keyframes nexa-pulse {
+            0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.6)); }
+            50% { transform: scale(1.08) rotate(180deg); filter: drop-shadow(0 0 30px rgba(245, 158, 11, 0.8)); }
+        }
+    </style>
+
+    <script type="module">
+        import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0";
+        window.HandLandmarker = HandLandmarker;
+        window.FilesetResolver = FilesetResolver;
+        window.dispatchEvent(new Event('mediapipe-loaded'));
+    </script>
+</head>
+<body class="hud-grid min-h-screen text-slate-100 flex flex-col justify-between select-none relative overflow-x-hidden">
+    <div class="scanlines fixed inset-0 z-10 opacity-40"></div>
+
+    <!-- ADVANCED AGENT HUD TARGETING FINGERTIP CURSOR -->
+    <div id="holo-cursor">
+        <div class="cursor-hud-ring"></div>
+        <div class="cursor-hud-crosshair"></div>
+        <div class="cursor-center-dot"></div>
+        <!-- Circular Dwell Progress Ring -->
+        <svg id="cursor-dwell-svg" class="absolute -top-3 -left-3 w-18 h-18 pointer-events-none" width="72" height="72" viewBox="0 0 72 72">
+            <circle class="text-cyan-950/40" stroke-width="3" stroke="currentColor" fill="transparent" r="30" cx="36" cy="36" />
+            <circle id="cursor-dwell-circle" class="progress-ring__circle text-amber-400" stroke-width="4" 
+                    stroke-dasharray="188.49" stroke-dashoffset="188.49" stroke-linecap="round" 
+                    stroke="currentColor" fill="transparent" r="30" cx="36" cy="36" />
+        </svg>
+    </div>
+
+    <!-- HEADER COMMAND BAR -->
+    <header class="border-b border-cyan-900/60 bg-slate-950/90 backdrop-blur-md px-6 py-3.5 flex flex-wrap justify-between items-center z-20 relative">
+        <div class="flex items-center space-x-4">
+            <div class="w-10 h-10 rounded-lg bg-cyan-950 border-2 border-cyan-400 flex items-center justify-center glow-cyan text-cyan-300 font-black text-xl">
+                <i class="fa-solid fa-shield-halved text-amber-400"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-hud text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-teal-200 to-amber-300">
+                        DSKP HOLOGRAM LAB
+                    </h1>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-hud font-bold bg-amber-950/80 border border-amber-500/60 text-amber-300 uppercase tracking-widest">
+                        MISI: PROTOKOL DSKP
+                    </span>
+                </div>
+                <p class="text-[11px] font-hud text-cyan-400/80 tracking-widest uppercase">AKTIFKAN • ANALISIS • KUASAI | STATUS: AGENT DSKP</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4 mt-2 sm:mt-0">
+            <div id="mode-badge" class="px-3 py-1 rounded-full text-xs font-hud font-semibold bg-slate-900 text-slate-400 border border-slate-800 flex items-center gap-2">
+                <span id="mode-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+                <span id="mode-text">SISTEM DIKALIBRASI</span>
+            </div>
+            <button id="toggle-debug-btn" onclick="toggleDebugPanel()" class="text-xs font-hud bg-slate-900 hover:bg-slate-800 border border-cyan-800/80 text-cyan-400 px-3 py-1.5 rounded transition flex items-center gap-1.5">
+                <i class="fa-solid fa-microchip"></i> DEBUG HUD
+            </button>
+        </div>
+    </header>
+
+    <!-- DEBUG PANEL (Collapsible) -->
+    <div id="debug-panel" class="hidden fixed top-20 right-4 bg-slate-950/95 border border-cyan-500/60 p-4 rounded-xl shadow-2xl z-50 text-xs font-mono w-72 backdrop-blur-xl">
+        <div class="flex justify-between items-center mb-2 border-b border-cyan-900/60 pb-1">
+            <span class="font-bold text-cyan-400 font-hud"><i class="fa-solid fa-terminal mr-1"></i> LOG TAKTIKAL AI</span>
+            <button onclick="toggleDebugPanel()" class="text-slate-400 hover:text-white">&times;</button>
+        </div>
+        <div class="space-y-1 text-[11px]">
+            <div class="flex justify-between"><span>MediaPipe Engine:</span> <span id="dbg-mp" class="text-amber-400 font-semibold">MEMUATKAN...</span></div>
+            <div class="flex justify-between"><span>Kamera Sensor:</span> <span id="dbg-cam" class="text-slate-500">OFF</span></div>
+            <div class="flex justify-between"><span>Kehadiran Tangan:</span> <span id="dbg-hand" class="text-slate-500">TIADA</span></div>
+            <div class="flex justify-between"><span>Indeks X (Norm):</span> <span id="dbg-x" class="text-cyan-400">0.00</span></div>
+            <div class="flex justify-between"><span>Indeks Y (Norm):</span> <span id="dbg-y" class="text-cyan-400">0.00</span></div>
+            <div class="flex justify-between"><span>Kursor HUD X:</span> <span id="dbg-cx" class="text-teal-400">0 px</span></div>
+            <div class="flex justify-between"><span>Kursor HUD Y:</span> <span id="dbg-cy" class="text-teal-400">0 px</span></div>
+            <div class="flex justify-between border-t border-slate-800 pt-1 mt-1"><span>Target Lock:</span> <span id="dbg-target" class="text-amber-400">TIADA</span></div>
+            <div class="flex justify-between"><span>Dwell Lock:</span> <span id="dbg-dwell" class="text-amber-400">0%</span></div>
+        </div>
+        <div id="dbg-error" class="mt-2 text-red-400 text-[10px] bg-red-950/50 p-1.5 rounded hidden border border-red-800/40 break-words"></div>
+    </div>
+
+    <!-- MAIN INTERACTION WORKSPACE -->
+    <main class="flex-1 relative flex flex-col justify-center items-center p-4 z-20">
+        
+        <!-- SCREEN 1: COMMAND CENTRE ENTRY -->
+        <section id="screen-camera-setup" class="max-w-xl w-full bg-slate-950/90 border-2 border-cyan-500/40 rounded-2xl p-8 backdrop-blur-xl shadow-2xl text-center space-y-6 relative overflow-hidden my-auto glow-cyan">
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="w-24 h-24 bg-cyan-950/80 border-2 border-cyan-400 rounded-2xl flex items-center justify-center mx-auto text-cyan-300 text-4xl glow-cyan animate-pulse relative">
+                <i class="fa-solid fa-fingerprint text-amber-400"></i>
+                <div class="absolute -inset-1 border border-cyan-500/30 rounded-2xl pointer-events-none"></div>
+            </div>
+            
+            <div class="space-y-2">
+                <div class="text-xs font-hud font-bold text-amber-400 tracking-widest uppercase">[ SISTEM TAKTIKAL DIMULAKAN ]</div>
+                <h2 class="text-2xl font-hud font-black text-white tracking-wide">IDENTITI EJEN DIPERLUKAN</h2>
+                <p class="text-slate-300 text-xs sm:text-sm leading-relaxed">
+                    Sistem DSKP memerlukan imbasan biometrik tangan untuk mengaktifkan kursor hologram HUD. Gunakan jari telunjuk anda di udara untuk mengawal interface.
+                </p>
+            </div>
+
+            <div class="bg-slate-900/90 border border-cyan-800/60 rounded-xl p-3.5 text-left text-xs text-cyan-300/90 space-y-1 font-mono">
+                <div class="font-bold text-amber-300 font-hud flex items-center gap-1.5 mb-1 text-[11px]">
+                    <i class="fa-solid fa-user-shield"></i> PRIVASI & RANGKAIAN TAKTIKAL:
+                </div>
+                <p>• Data biometrik diproses 100% tempatan pada memori peranti.</p>
+                <p>• Tiada rakaman video disimpan atau dihantar ke mana-mana pelayan.</p>
+            </div>
+
+            <div class="pt-2 space-y-3">
+                <button id="btn-activate-cam" onclick="initCameraTracking()" class="interactive-target w-full py-4 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-amber-500 hover:from-cyan-400 hover:to-amber-400 font-hud font-black text-slate-950 shadow-lg shadow-cyan-500/30 text-sm tracking-wider uppercase transition transform active:scale-95 flex items-center justify-center gap-3">
+                    <i class="fa-solid fa-crosshair text-lg"></i> ◉ AKTIFKAN PENGIMBAS BIOMETRIK
+                </button>
+
+                <button onclick="activateTouchFallback()" class="interactive-target text-xs text-slate-400 hover:text-cyan-300 underline underline-offset-4 py-2 font-mono">
+                    👆 Mod Kawalan Sentuh / Tetikus Manual
+                </button>
+            </div>
+        </section>
+
+        <!-- SCREEN 2: BIOMETRIC CALIBRATION STAGE -->
+        <section id="screen-calibration" class="hidden max-w-xl w-full bg-slate-950/90 border-2 border-cyan-500/50 rounded-2xl p-8 backdrop-blur-xl shadow-2xl text-center space-y-6 my-auto relative glow-cyan">
+            <div class="inline-block px-3 py-1 rounded bg-cyan-950 border border-cyan-500/60 text-cyan-300 text-xs font-hud font-bold tracking-widest uppercase">
+                PENGESAHAN SENSOR HUD
+            </div>
+
+            <h2 class="text-xl font-hud font-bold text-white">☝️ Halakan kursor telunjuk ke Sasaran Orb</h2>
+            <p class="text-xs text-slate-300">
+                Kekalkan kursor di dalam orb sasaran selama 1 saat untuk mengunci kunci biometrik.
+            </p>
+
+            <!-- Calibration Orb Target -->
+            <div class="py-4 flex justify-center items-center">
+                <div id="calibration-orb" class="interactive-target w-44 h-44 rounded-full bg-gradient-to-tr from-cyan-950 via-slate-900 to-amber-950/60 border-2 border-cyan-400 flex flex-col items-center justify-center relative cursor-pointer glow-cyan group">
+                    <i class="fa-solid fa-atom text-5xl text-cyan-300 animate-spin" style="animation-duration: 10s;"></i>
+                    <span id="calib-progress-text" class="text-xs font-hud font-bold text-amber-300 mt-2">LOCK TARGET</span>
+                    
+                    <!-- SVG Progress Circle for Orb -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
+                        <circle class="text-cyan-950/30" stroke-width="3" stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                        <circle id="calib-orb-ring" class="progress-ring__circle text-amber-400" stroke-width="4" 
+                                stroke-dasharray="282.7" stroke-dashoffset="282.7" stroke-linecap="round" 
+                                stroke="currentColor" fill="transparent" r="45" cx="50" cy="50" />
+                    </svg>
+                </div>
+            </div>
+
+            <div id="calib-success-msg" class="hidden bg-cyan-950/90 border border-cyan-400 p-3 rounded-xl text-cyan-300 text-xs font-hud font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-shield-check text-emerald-400 text-lg"></i>
+                <span>✓ BIOMETRIK DISAHKAN — AKSES DIBENARKAN</span>
+            </div>
+
+            <button id="btn-enter-lab" disabled onclick="goToBriefing()" class="interactive-target w-full py-3.5 px-6 rounded-xl bg-slate-800 text-slate-500 font-hud font-bold text-xs tracking-widest uppercase transition border border-slate-700">
+                TERUSKAN KE TAKLIMAT MISI (TERKUNCI)
+            </button>
+        </section>
+
+        <!-- SCREEN 3: CINEMATIC MISSION BRIEFING (NEXA AI) -->
+        <section id="screen-briefing" class="hidden max-w-2xl w-full bg-slate-950/95 border-2 border-cyan-500/50 rounded-2xl p-8 backdrop-blur-xl shadow-2xl text-left space-y-6 my-auto relative glow-cyan">
+            <div class="flex items-center space-x-4 border-b border-cyan-900/60 pb-4">
+                <!-- Abstract Geometric NEXA AI Avatar -->
+                <div class="w-16 h-16 bg-cyan-950 border-2 border-cyan-400 rounded-2xl flex items-center justify-center relative nexa-core">
+                    <i class="fa-solid fa-shapes text-amber-400 text-2xl"></i>
+                    <div class="absolute -inset-2 border border-cyan-500/40 rounded-2xl animate-ping opacity-25"></div>
+                </div>
+                <div>
+                    <h3 class="font-hud font-black text-cyan-300 text-lg">NEXA</h3>
+                    <p class="text-xs font-hud text-amber-400 tracking-widest uppercase">SISTEM BANTUAN TAKTIKAL DSKP</p>
+                </div>
+            </div>
+
+            <div class="space-y-3 font-mono text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-900/80 p-4 rounded-xl border border-cyan-900/50">
+                <p class="text-cyan-300 font-bold font-hud">"Ejen DSKP, dengar dengan teliti."</p>
+                <p>"Sistem DSKP telah kehilangan tiga teras utama pengetahuan kurikulum:"</p>
+                <div class="grid grid-cols-3 gap-2 py-2 text-center font-hud font-bold text-xs">
+                    <div class="bg-cyan-950/80 border border-cyan-500/40 p-2 rounded text-cyan-300">◇ SK</div>
+                    <div class="bg-amber-950/80 border border-amber-500/40 p-2 rounded text-amber-300">◇ SP</div>
+                    <div class="bg-purple-950/80 border border-purple-500/40 p-2 rounded text-purple-300">◇ PRESTASI</div>
+                </div>
+                <p>"Misi anda adalah mendapatkan semula ketiga-tiga teras ini menerusi 3 operasi khas."</p>
+                <p class="text-amber-400 font-bold">"Gunakan pengetahuan anda. Dan jangan gagal."</p>
+            </div>
+
+            <button onclick="enterMainLab()" class="interactive-target w-full py-4 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-amber-500 font-hud font-black text-slate-950 text-xs tracking-widest uppercase shadow-lg shadow-cyan-500/30 hover:scale-105 transition text-center">
+                [ MULAKAN MISI PROTOKOL DSKP ]
+            </button>
+        </section>
+
+        <!-- SCREEN 4: TACTICAL COMMAND CENTRE / MAIN LAB -->
+        <section id="screen-main-lab" class="hidden w-full max-w-6xl space-y-6 my-auto">
+            
+            <!-- DSKP CORE STATUS PANEL -->
+            <div class="bg-slate-950/90 border-2 border-cyan-500/40 rounded-2xl p-4 backdrop-blur-md flex flex-wrap justify-between items-center gap-4 glow-cyan">
+                <div class="flex items-center space-x-3">
+                    <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-amber-500 flex items-center justify-center text-slate-950 text-2xl font-black shadow-lg shadow-cyan-500/20">
+                        <i class="fa-solid fa-microchip"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-hud text-cyan-400 font-bold uppercase tracking-widest">DSKP CORE POWER MATRIX</div>
+                        <div id="core-status-title" class="text-base font-hud font-black text-white">TERAS PULIH: 0 / 3 (0%)</div>
+                    </div>
+                </div>
+
+                <!-- 3 Core Indicator Slots -->
+                <div class="flex items-center gap-3 font-hud text-xs font-bold">
+                    <div id="slot-sk" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-500">◇ SK</div>
+                    <div id="slot-sp" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-500">◇ SP</div>
+                    <div id="slot-spi" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-900 text-slate-500">◇ PRESTASI</div>
+                </div>
+
+                <!-- Mission Portals Selector -->
+                <div class="flex space-x-2 font-hud">
+                    <button id="tab-stesen-1" onclick="switchStation(1)" class="interactive-target px-3 py-1.5 rounded-lg border text-xs font-bold bg-cyan-500/20 border-cyan-400 text-cyan-300">MISI 01</button>
+                    <button id="tab-stesen-2" onclick="switchStation(2)" class="interactive-target px-3 py-1.5 rounded-lg border text-xs font-bold bg-slate-900 border-slate-800 text-slate-400">MISI 02</button>
+                    <button id="tab-stesen-3" onclick="switchStation(3)" class="interactive-target px-3 py-1.5 rounded-lg border text-xs font-bold bg-slate-900 border-slate-800 text-slate-400">MISI 03</button>
+                </div>
+            </div>
+
+            <!-- MISSION WORKSPACE CONTAINER -->
+            <div id="station-container" class="bg-slate-950/80 border border-cyan-500/30 rounded-2xl p-6 backdrop-blur-lg min-h-[420px] flex flex-col justify-between relative">
+                
+                <!-- MISSION 01: OPERASI JEJAK KOMPONEN -->
+                <div id="station-1-content" class="space-y-6">
+                    <div class="border-b border-cyan-900/60 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-hud font-black text-cyan-300">🔎 OPERASI 01: JEJAK KOMPONEN DSKP</h3>
+                            <p class="text-xs text-slate-400 font-mono">Imbas data hologram untuk mengenal pasti 3 komponen utama DSKP.</p>
+                        </div>
+                        <span id="s1-score" class="text-xs font-hud font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 px-3 py-1 rounded-full">STATUS: 0/3</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <!-- Data Core SK -->
+                        <div id="s1-orb-sk" onclick="scanComponent('sk')" class="interactive-target bg-slate-900/90 border border-cyan-500/30 rounded-xl p-5 text-center space-y-3 cursor-pointer hover:border-cyan-400 transition group">
+                            <div class="w-16 h-16 rounded-2xl bg-cyan-950 border border-cyan-400 mx-auto flex items-center justify-center text-cyan-300 text-2xl group-hover:scale-110 transition glow-cyan">
+                                <i class="fa-solid fa-cube"></i>
+                            </div>
+                            <h4 class="font-hud font-extrabold text-white text-xs">STANDARD KANDUNGAN</h4>
+                            <p id="s1-desc-sk" class="text-xs text-slate-400 leading-relaxed font-mono">Halakan kursor HUD untuk mengimbas teras SK...</p>
+                        </div>
+
+                        <!-- Data Core SP -->
+                        <div id="s1-orb-sp" onclick="scanComponent('sp')" class="interactive-target bg-slate-900/90 border border-cyan-500/30 rounded-xl p-5 text-center space-y-3 cursor-pointer hover:border-cyan-400 transition group">
+                            <div class="w-16 h-16 rounded-2xl bg-amber-950 border border-amber-400 mx-auto flex items-center justify-center text-amber-300 text-2xl group-hover:scale-110 transition glow-orange">
+                                <i class="fa-solid fa-cubes-stacked"></i>
+                            </div>
+                            <h4 class="font-hud font-extrabold text-white text-xs">STANDARD PEMBELAJARAN</h4>
+                            <p id="s1-desc-sp" class="text-xs text-slate-400 leading-relaxed font-mono">Halakan kursor HUD untuk mengimbas teras SP...</p>
+                        </div>
+
+                        <!-- Data Core Prestasi -->
+                        <div id="s1-orb-spi" onclick="scanComponent('spi')" class="interactive-target bg-slate-900/90 border border-cyan-500/30 rounded-xl p-5 text-center space-y-3 cursor-pointer hover:border-cyan-400 transition group">
+                            <div class="w-16 h-16 rounded-2xl bg-purple-950 border border-purple-400 mx-auto flex items-center justify-center text-purple-300 text-2xl group-hover:scale-110 transition">
+                                <i class="fa-solid fa-chart-diagram"></i>
+                            </div>
+                            <h4 class="font-hud font-extrabold text-white text-xs">STANDARD PRESTASI</h4>
+                            <p id="s1-desc-spi" class="text-xs text-slate-400 leading-relaxed font-mono">Halakan kursor HUD untuk mengimbas teras SPi...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MISSION 02: OPERASI PADANAN INTEL -->
+                <div id="station-2-content" class="hidden space-y-6">
+                    <div class="border-b border-cyan-900/60 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-hud font-black text-cyan-300">🧠 OPERASI 02: PADANAN INTEL DSKP</h3>
+                            <p class="text-xs text-slate-400 font-mono">Pilih data intel tersah di kiri, kemudian kunci pada portal sasaran yang tepat.</p>
+                        </div>
+                        <span id="s2-score" class="text-xs font-hud font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 px-3 py-1 rounded-full">STATUS: 0/3</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Data Cards -->
+                        <div class="space-y-3">
+                            <div class="text-[11px] font-hud font-bold text-amber-400 tracking-wider">1. PILIH KAD INTEL:</div>
+                            <div id="s2-card-1" onclick="selectS2Card(1)" class="interactive-target bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl cursor-pointer hover:border-cyan-400 text-xs font-mono transition">
+                                📄 "Pernyataan spesifik tentang apa yang murid patut ketahui dan boleh lakukan."
+                            </div>
+                            <div id="s2-card-2" onclick="selectS2Card(2)" class="interactive-target bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl cursor-pointer hover:border-cyan-400 text-xs font-mono transition">
+                                🎯 "Suatu kriteria atau indikator kualiti pembelajaran dan pencapaian yang boleh diukur."
+                            </div>
+                            <div id="s2-card-3" onclick="selectS2Card(3)" class="interactive-target bg-slate-900/90 border border-slate-700 p-3.5 rounded-xl cursor-pointer hover:border-cyan-400 text-xs font-mono transition">
+                                📊 "Set kriteria umum yang menunjukkan tahap-tahap penguasaan murid (TP1 - TP6)."
+                            </div>
+                        </div>
+
+                        <!-- Target Portals -->
+                        <div class="space-y-3">
+                            <div class="text-[11px] font-hud font-bold text-amber-400 tracking-wider">2. HALAKAN KE PORTAL TERAS:</div>
+                            <div id="s2-portal-sk" onclick="matchS2Portal('sk')" class="interactive-target bg-cyan-950/40 border border-cyan-500/50 p-3.5 rounded-xl text-center text-xs font-hud font-bold text-cyan-300 hover:bg-cyan-900/50 transition">
+                                🌌 PORTAL: Standard Kandungan (SK)
+                            </div>
+                            <div id="s2-portal-sp" onclick="matchS2Portal('sp')" class="interactive-target bg-amber-950/40 border border-amber-500/50 p-3.5 rounded-xl text-center text-xs font-hud font-bold text-amber-300 hover:bg-amber-900/50 transition">
+                                🌌 PORTAL: Standard Pembelajaran (SP)
+                            </div>
+                            <div id="s2-portal-spi" onclick="matchS2Portal('spi')" class="interactive-target bg-purple-950/40 border border-purple-500/50 p-3.5 rounded-xl text-center text-xs font-hud font-bold text-purple-300 hover:bg-purple-900/50 transition">
+                                🌌 PORTAL: Standard Prestasi (SPi)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MISSION 03: OPERASI SIMULASI LAPANGAN -->
+                <div id="station-3-content" class="hidden space-y-6">
+                    <div class="border-b border-cyan-900/60 pb-3 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-base font-hud font-black text-cyan-300">⚡ OPERASI 03: SIMULASI LAPANGAN PEDAGOGI</h3>
+                            <p class="text-xs text-slate-400 font-mono">Pilih tindakan protokol pedagogi terbaik berasaskan senario realiti bilik darjah.</p>
+                        </div>
+                        <span id="s3-score" class="text-xs font-hud font-bold bg-cyan-950 text-cyan-400 border border-cyan-800 px-3 py-1 rounded-full">SENARIO: 1/1</span>
+                    </div>
+
+                    <div id="s3-scenario-box" class="bg-slate-900/90 border border-cyan-500/40 p-5 rounded-xl space-y-4">
+                        <div class="text-[11px] font-hud font-bold text-amber-400 uppercase tracking-wider">SENARIO TAKTIKAL LAPANGAN:</div>
+                        <p id="s3-scenario-text" class="text-xs sm:text-sm text-slate-200 font-mono leading-relaxed">
+                            "Murid di kelas anda mempunyai tahap penguasaan yang sangat berbeza. Sesetengah murid telah menguasai TP4 manakala sebahagian lagi masih di TP1."
+                        </p>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                            <button id="s3-opt-a" onclick="answerS3('a')" class="interactive-target p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-left hover:border-cyan-400 transition font-mono">
+                                A) Ajar tajuk yang sama secara seragam tanpa sebarang penyesuaian aktiviti.
+                            </button>
+                            <button id="s3-opt-b" onclick="answerS3('b')" class="interactive-target p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-left hover:border-cyan-400 transition font-mono">
+                                B) Melaksanakan Pengajaran Terbeza (Differentiated Learning) mengikut Tahap Penguasaan DSKP.
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FINAL MISSION ACCOMPLISHED MODAL -->
+                <div id="victory-modal" class="hidden bg-slate-950/98 border-2 border-cyan-400 p-8 rounded-2xl text-center space-y-6 my-auto glow-cyan-lg">
+                    <div class="w-24 h-24 bg-emerald-950/80 border-2 border-emerald-400 rounded-full flex items-center justify-center mx-auto text-emerald-400 text-5xl glow-cyan animate-bounce">
+                        <i class="fa-solid fa-trophy text-amber-400"></i>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <div class="text-xs font-hud font-bold text-amber-400 tracking-widest">[ PROTOKOL STABIL • MISI SELESAI ]</div>
+                        <h2 class="text-2xl font-hud font-black text-white">🏆 MISSION ACCOMPLISHED, AGENT DSKP</h2>
+                        <p class="text-xs text-cyan-300 font-mono mt-2">
+                            "Syabas, Ejen. Anda telah berjaya menguasai Protokol DSKP menggunakan teknologi kawalan AI Hand Tracking."
+                        </p>
+                    </div>
+
+                    <div class="flex justify-center gap-4 py-2 font-hud text-xs">
+                        <div class="bg-slate-900 border border-cyan-800 p-3 rounded-xl text-center min-w-[120px]">
+                            <i class="fa-solid fa-award text-amber-400 text-2xl mb-1 block"></i>
+                            AKADEMIK DSKP
+                        </div>
+                        <div class="bg-slate-900 border border-cyan-800 p-3 rounded-xl text-center min-w-[120px]">
+                            <i class="fa-solid fa-hand-pointer text-cyan-400 text-2xl mb-1 block"></i>
+                            KAWALAN HUD AI
+                        </div>
+                    </div>
+
+                    <button onclick="resetLab()" class="interactive-target py-4 px-8 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-amber-500 font-hud font-black text-slate-950 text-xs uppercase tracking-widest hover:scale-105 transition">
+                        🔄 ULANG MISI TAKTIKAL
+                    </button>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- PIP LIVE CAMERA PREVIEW WIDGET -->
+    <div id="pip-camera-container" class="fixed bottom-4 right-4 z-40 bg-slate-950/95 border-2 border-cyan-500/60 rounded-2xl p-2.5 shadow-2xl backdrop-blur-md w-48 sm:w-56 transition-all glow-cyan">
+        <div class="relative rounded-xl overflow-hidden bg-slate-900 aspect-video border border-slate-800">
+            <!-- Animated vertical laser scanline overlay inside frame -->
+            <div class="laser-scanner"></div>
+            
+            <!-- Hidden live video element processed by MediaPipe -->
+            <video id="webcam-video" class="w-full h-full object-cover mirror-video" autoplay muted playsinline></video>
+            <canvas id="hand-canvas" class="absolute inset-0 w-full h-full pointer-events-none mirror-video"></canvas>
+            
+            <!-- Camera Status Tag -->
+            <div id="cam-status-tag" class="absolute top-1.5 left-1.5 bg-slate-950/80 backdrop-blur-md text-[9px] font-hud font-bold px-2 py-0.5 rounded-full border border-slate-700 text-slate-300 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span> 📷 SENSOR OFF
+            </div>
+        </div>
+
+        <div id="hand-status-box" class="mt-2 text-center text-[10px] font-hud font-bold py-1 px-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400">
+            ⚠️ TANGAN TIDAK DIKESAN
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. GLOBAL STATE & SYSTEM VARIABLES
+           ========================================================================== */
+        let handLandmarker = null;
+        let webcamRunning = false;
+        let isTouchFallback = false;
+        let isCalibrated = false;
+
+        // Coordinates & Exponential Smoothing
+        let targetX = window.innerWidth / 2;
+        let targetY = window.innerHeight / 2;
+        let cursorX = targetX;
+        let cursorY = targetY;
+        const smoothingFactor = 0.28;
+
+        // Dwell Interaction Engine
+        let currentHoverElement = null;
+        let dwellStartTime = null;
+        const DWELL_DURATION = 1000; // 1 second hold
+
+        // Procedural Audio Context
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'hover') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'activate') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.exponentialRampToValueAtTime(1200, now + 0.18);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                } else if (type === 'success') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.linearRampToValueAtTime(130, now + 0.2);
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0, now + 0.2);
+                    osc.start(now);
+                    osc.stop(now + 0.2);
+                }
+            } catch(e) {
+                console.warn('Audio synthesis error:', e);
+            }
+        }
+
+        /* ==========================================================================
+           2. MEDIAPIPE INITIALIZATION
+           ========================================================================== */
+        window.addEventListener('mediapipe-loaded', async () => {
+            const dbgMp = document.getElementById('dbg-mp');
+            try {
+                dbgMp.textContent = "MEMUATKAN WASM...";
+                const vision = await window.FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm"
+                );
+                
+                dbgMp.textContent = "MEMBINA LANDMARKER...";
+                handLandmarker = await window.HandLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                        delegate: "GPU"
+                    },
+                    runningMode: "VIDEO",
+                    numHands: 1
+                });
+
+                dbgMp.textContent = "READY";
+                dbgMp.className = "text-emerald-400 font-semibold";
+            } catch (err) {
+                console.error("MediaPipe Init Error:", err);
+                dbgMp.textContent = "RALAT";
+                dbgMp.className = "text-red-400 font-semibold";
+                showDebugError("MediaPipe Init: " + err.message);
+            }
+        });
+
+        /* ==========================================================================
+           3. CAMERA ACTIVATION & STREAMING PIPELINE
+           ========================================================================== */
+        async function initCameraTracking() {
+            initAudio();
+            const video = document.getElementById('webcam-video');
+            const dbgCam = document.getElementById('dbg-cam');
+            const camTag = document.getElementById('cam-status-tag');
+
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Pelayar anda tidak menyokong akses kamera.");
+                activateTouchFallback();
+                return;
+            }
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: "user",
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                video.autoplay = true;
+                video.muted = true;
+                video.playsInline = true;
+
+                video.addEventListener('loadeddata', () => {
+                    webcamRunning = true;
+                    dbgCam.textContent = "AKTIF";
+                    dbgCam.className = "text-emerald-400";
+                    
+                    camTag.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> 📷 SENSOR AKTIF`;
+                    camTag.className = "absolute top-1.5 left-1.5 bg-slate-950/90 backdrop-blur-md text-[9px] font-hud font-bold px-2 py-0.5 rounded-full border border-emerald-500/50 text-emerald-300 flex items-center gap-1";
+
+                    // Show HUD cursor
+                    document.getElementById('holo-cursor').style.display = 'block';
+
+                    // Update global mode badge
+                    const modeDot = document.getElementById('mode-dot');
+                    const modeText = document.getElementById('mode-text');
+                    modeDot.className = "w-2 h-2 rounded-full bg-cyan-400 animate-ping";
+                    modeText.textContent = "AI HUD TRACKING AKTIF";
+
+                    // Switch to Calibration Screen
+                    document.getElementById('screen-camera-setup').classList.add('hidden');
+                    document.getElementById('screen-calibration').classList.remove('hidden');
+
+                    // Start Tracking Loop
+                    requestAnimationFrame(predictWebcamFrame);
+                });
+
+            } catch (err) {
+                console.error("Camera access error:", err);
+                dbgCam.textContent = "RALAT";
+                dbgCam.className = "text-red-400";
+                showDebugError("Akses Kamera: " + err.message);
+                activateTouchFallback();
+            }
+        }
+
+        /* ==========================================================================
+           4. MEDIAPIPE FRAME PREDICTION & CURSOR MAPPING
+           ========================================================================== */
+        let lastVideoTime = -1;
+
+        async function predictWebcamFrame() {
+            const video = document.getElementById('webcam-video');
+            const dbgHand = document.getElementById('dbg-hand');
+            const dbgX = document.getElementById('dbg-x');
+            const dbgY = document.getElementById('dbg-y');
+            const handStatusBox = document.getElementById('hand-status-box');
+
+            if (webcamRunning && handLandmarker && video.currentTime !== lastVideoTime) {
+                lastVideoTime = video.currentTime;
+                
+                let startTimeMs = performance.now();
+                const results = handLandmarker.detectForVideo(video, startTimeMs);
+
+                if (results.landmarks && results.landmarks.length > 0) {
+                    dbgHand.textContent = "DIKESAN";
+                    dbgHand.className = "text-emerald-400";
+
+                    handStatusBox.textContent = "✋ TANGAN DIKESAN";
+                    handStatusBox.className = "mt-2 text-center text-[10px] font-hud font-bold py-1 px-2 rounded-lg bg-cyan-950 border border-cyan-500 text-cyan-300 glow-cyan";
+
+                    // INDEX_FINGER_TIP is landmark 8
+                    const indexFinger = results.landmarks[0][8];
+
+                    dbgX.textContent = indexFinger.x.toFixed(3);
+                    dbgY.textContent = indexFinger.y.toFixed(3);
+
+                    // Mirrored Mapping
+                    targetX = (1 - indexFinger.x) * window.innerWidth;
+                    targetY = indexFinger.y * window.innerHeight;
+
+                } else {
+                    dbgHand.textContent = "TIADA";
+                    dbgHand.className = "text-slate-500";
+
+                    handStatusBox.textContent = "⚠️ TANGAN TIDAK DIKESAN";
+                    handStatusBox.className = "mt-2 text-center text-[10px] font-hud font-bold py-1 px-2 rounded-lg bg-slate-900 border border-slate-800 text-slate-400";
+                }
+            }
+
+            updateCursorPosition();
+            checkDwellHover();
+
+            if (webcamRunning) {
+                requestAnimationFrame(predictWebcamFrame);
+            }
+        }
+
+        function updateCursorPosition() {
+            cursorX += (targetX - cursorX) * smoothingFactor;
+            cursorY += (targetY - cursorY) * smoothingFactor;
+
+            const cursorEl = document.getElementById('holo-cursor');
+            cursorEl.style.transform = `translate3d(${cursorX}px, ${cursorY}px, 0)`;
+
+            document.getElementById('dbg-cx').textContent = Math.round(cursorX) + " px";
+            document.getElementById('dbg-cy').textContent = Math.round(cursorY) + " px";
+        }
+
+        /* ==========================================================================
+           5. REUSABLE DWELL SELECTION SYSTEM
+           ========================================================================== */
+        function checkDwellHover() {
+            if (isTouchFallback) return;
+
+            const elem = document.elementFromPoint(cursorX, cursorY);
+            const target = elem ? elem.closest('.interactive-target') : null;
+
+            const dbgTarget = document.getElementById('dbg-target');
+            const dbgDwell = document.getElementById('dbg-dwell');
+
+            if (target && !target.hasAttribute('disabled')) {
+                if (currentHoverElement !== target) {
+                    if (currentHoverElement) {
+                        currentHoverElement.classList.remove('dwell-hover');
+                    }
+                    currentHoverElement = target;
+                    currentHoverElement.classList.add('dwell-hover');
+                    dwellStartTime = performance.now();
+                    playSound('hover');
+                    dbgTarget.textContent = target.id || target.tagName;
+                }
+
+                const elapsed = performance.now() - dwellStartTime;
+                const progress = Math.min(1.0, elapsed / DWELL_DURATION);
+                const percent = Math.round(progress * 100);
+
+                dbgDwell.textContent = percent + "%";
+                updateDwellProgressRings(progress, target);
+
+                if (progress >= 1.0) {
+                    playSound('activate');
+                    triggerElementAction(target);
+                    resetDwellState();
+                }
+
+            } else {
+                resetDwellState();
+                dbgTarget.textContent = "TIADA";
+                dbgDwell.textContent = "0%";
+            }
+        }
+
+        function resetDwellState() {
+            if (currentHoverElement) {
+                currentHoverElement.classList.remove('dwell-hover');
+                currentHoverElement = null;
+            }
+            dwellStartTime = null;
+            updateDwellProgressRings(0, null);
+        }
+
+        function updateDwellProgressRings(progress, activeTarget) {
+            const cursorCircle = document.getElementById('cursor-dwell-circle');
+            const circumference = 188.49; // 2 * PI * 30
+            const offset = circumference - (progress * circumference);
+            cursorCircle.style.strokeDashoffset = offset;
+
+            if (activeTarget && activeTarget.id === 'calibration-orb') {
+                const orbCircle = document.getElementById('calib-orb-ring');
+                const orbCircumference = 282.7;
+                orbCircle.style.strokeDashoffset = orbCircumference - (progress * orbCircumference);
+                document.getElementById('calib-progress-text').textContent = Math.round(progress * 100) + "%";
+            }
+        }
+
+        function triggerElementAction(element) {
+            element.click();
+        }
+
+        /* ==========================================================================
+           6. SCREEN FLOW & CALIBRATION
+           ========================================================================== */
+        document.getElementById('calibration-orb').addEventListener('click', () => {
+            if (isCalibrated) return;
+            isCalibrated = true;
+            playSound('success');
+
+            document.getElementById('calib-success-msg').classList.remove('hidden');
+            const btnEnter = document.getElementById('btn-enter-lab');
+            btnEnter.disabled = false;
+            btnEnter.className = "interactive-target w-full py-3.5 px-6 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-amber-500 font-hud font-black text-slate-950 text-xs tracking-widest uppercase shadow-lg shadow-cyan-500/30 transition transform hover:scale-105 cursor-pointer";
+            btnEnter.textContent = "TERUSKAN KE TAKLIMAT MISI";
+        });
+
+        function activateTouchFallback() {
+            initAudio();
+            isTouchFallback = true;
+            webcamRunning = false;
+
+            document.getElementById('holo-cursor').style.display = 'none';
+
+            const modeBadge = document.getElementById('mode-badge');
+            modeBadge.className = "px-3 py-1 rounded-full text-xs font-hud font-semibold bg-amber-950 text-amber-300 border border-amber-600/50 flex items-center gap-2";
+            modeBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-400"></span> MOD SENTUH / TETIKUS`;
+
+            document.getElementById('screen-camera-setup').classList.add('hidden');
+            document.getElementById('screen-calibration').classList.add('hidden');
+            document.getElementById('screen-briefing').classList.remove('hidden');
+
+            playSound('activate');
+        }
+
+        function goToBriefing() {
+            document.getElementById('screen-calibration').classList.add('hidden');
+            document.getElementById('screen-briefing').classList.remove('hidden');
+            playSound('activate');
+        }
+
+        function enterMainLab() {
+            document.getElementById('screen-briefing').classList.add('hidden');
+            document.getElementById('screen-main-lab').classList.remove('hidden');
+            playSound('activate');
+        }
+
+        window.addEventListener('mousemove', (e) => {
+            if (isTouchFallback) return;
+            if (!webcamRunning) {
+                targetX = e.clientX;
+                targetY = e.clientY;
+            }
+        });
+
+        /* ==========================================================================
+           7. MISSION OPERATIONS & CORE INTEGRITY LOGIC
+           ========================================================================== */
+        let scannedComponents = new Set();
+        let matchedPortals = 0;
+        let selectedS2Card = null;
+        let station3Progress = 0;
+
+        function updateCoreIntegrity() {
+            const totalTasks = 3 + 3 + 1; // S1(3) + S2(3) + S3(1)
+            const completed = scannedComponents.size + matchedPortals + station3Progress;
+            const percentage = Math.round((completed / totalTasks) * 100);
+
+            document.getElementById('core-status-title').textContent = `TERAS PULIH: ${completed} / ${totalTasks} (${percentage}%)`;
+
+            // Update individual slot indicators
+            if (scannedComponents.has('sk')) {
+                const s = document.getElementById('slot-sk');
+                s.className = "px-3 py-1.5 rounded-lg border border-cyan-400 bg-cyan-950 text-cyan-300 font-bold";
+                s.textContent = "◆ SK";
+            }
+            if (scannedComponents.has('sp')) {
+                const s = document.getElementById('slot-sp');
+                s.className = "px-3 py-1.5 rounded-lg border border-amber-400 bg-amber-950 text-amber-300 font-bold";
+                s.textContent = "◆ SP";
+            }
+            if (scannedComponents.has('spi')) {
+                const s = document.getElementById('slot-spi');
+                s.className = "px-3 py-1.5 rounded-lg border border-purple-400 bg-purple-950 text-purple-300 font-bold";
+                s.textContent = "◆ PRESTASI";
+            }
+
+            if (percentage >= 100) {
+                setTimeout(() => {
+                    document.getElementById('station-container').classList.add('hidden');
+                    document.getElementById('victory-modal').classList.remove('hidden');
+                    playSound('success');
+                }, 600);
+            }
+        }
+
+        function switchStation(stationNum) {
+            playSound('hover');
+            for (let i = 1; i <= 3; i++) {
+                document.getElementById(`station-${i}-content`).classList.add('hidden');
+                const tab = document.getElementById(`tab-stesen-${i}`);
+                tab.className = "interactive-target px-3 py-1.5 rounded-lg border text-xs font-bold bg-slate-900 border-slate-800 text-slate-400";
+            }
+
+            document.getElementById(`station-${stationNum}-content`).classList.remove('hidden');
+            const activeTab = document.getElementById(`tab-stesen-${stationNum}`);
+            activeTab.className = "interactive-target px-3 py-1.5 rounded-lg border text-xs font-bold bg-cyan-500/20 border-cyan-400 text-cyan-300";
+        }
+
+        /* OPERASI 01 LOGIC */
+        function scanComponent(type) {
+            if (scannedComponents.has(type)) return;
+            scannedComponents.add(type);
+            playSound('activate');
+
+            if (type === 'sk') {
+                document.getElementById('s1-desc-sk').textContent = "✓ SK: Hash fokus utama pembelajaran akademik bagi sesuatu mata pelajaran.";
+                document.getElementById('s1-orb-sk').classList.add('border-emerald-400', 'bg-emerald-950/40');
+            } else if (type === 'sp') {
+                document.getElementById('s1-desc-sp').textContent = "✓ SP: Indikator kualiti pembelajaran dan pencapaian yang boleh diukur.";
+                document.getElementById('s1-orb-sp').classList.add('border-emerald-400', 'bg-emerald-950/40');
+            } else if (type === 'spi') {
+                document.getElementById('s1-desc-spi').textContent = "✓ SPi: Hirarki tahap penguasaan (TP1-TP6) murid secara holistik.";
+                document.getElementById('s1-orb-spi').classList.add('border-emerald-400', 'bg-emerald-950/40');
+            }
+
+            document.getElementById('s1-score').textContent = `STATUS: ${scannedComponents.size}/3`;
+            updateCoreIntegrity();
+        }
+
+        /* OPERASI 02 LOGIC */
+        function selectS2Card(id) {
+            playSound('hover');
+            selectedS2Card = id;
+            for (let i = 1; i <= 3; i++) {
+                const card = document.getElementById(`s2-card-${i}`);
+                card.classList.remove('border-cyan-400', 'bg-cyan-950/60');
+            }
+            document.getElementById(`s2-card-${id}`).classList.add('border-cyan-400', 'bg-cyan-950/60');
+        }
+
+        function matchS2Portal(portalType) {
+            if (!selectedS2Card) {
+                playSound('error');
+                return;
+            }
+
+            let correct = false;
+            if (selectedS2Card === 1 && portalType === 'sk') correct = true;
+            if (selectedS2Card === 2 && portalType === 'sp') correct = true;
+            if (selectedS2Card === 3 && portalType === 'spi') correct = true;
+
+            if (correct) {
+                playSound('success');
+                matchedPortals++;
+                document.getElementById(`s2-card-${selectedS2Card}`).style.display = 'none';
+                document.getElementById(`s2-portal-${portalType}`).innerHTML = `✓ PORTAL DISAHKAN (${portalType.toUpperCase()})`;
+                document.getElementById(`s2-portal-${portalType}`).className = "p-3.5 rounded-xl text-center text-xs font-hud font-bold text-emerald-300 bg-emerald-950/40 border border-emerald-400";
+                selectedS2Card = null;
+                document.getElementById('s2-score').textContent = `STATUS: ${matchedPortals}/3`;
+                updateCoreIntegrity();
+            } else {
+                playSound('error');
+            }
+        }
+
+        /* OPERASI 03 LOGIC */
+        function answerS3(option) {
+            if (option === 'b') {
+                playSound('success');
+                station3Progress = 1;
+                document.getElementById('s3-scenario-text').textContent = "✓ PROTOKOL SAH: Pengajaran Terbeza memastikan setiap murid mencapai TP optimum mengikut keupayaan individu.";
+                document.getElementById('s3-opt-a').style.display = 'none';
+                document.getElementById('s3-opt-b').className = "p-4 rounded-xl bg-emerald-950/60 border border-emerald-400 text-xs font-hud font-bold text-emerald-300 w-full text-center";
+                document.getElementById('s3-opt-b').textContent = "✓ KEPUTUSAN PEDAGOGI TEPAT";
+                document.getElementById('s3-score').textContent = "SENARIO: 1/1";
+                updateCoreIntegrity();
+            } else {
+                playSound('error');
+            }
+        }
+
+        /* DEBUG UTILITIES */
+        function toggleDebugPanel() {
+            const panel = document.getElementById('debug-panel');
+            panel.classList.toggle('hidden');
+        }
+
+        function showDebugError(msg) {
+            const errBox = document.getElementById('dbg-error');
+            errBox.textContent = msg;
+            errBox.classList.remove('hidden');
+        }
+
+        function resetLab() {
+            location.reload();
+        }
+    </script>
+</body>
+</html>
